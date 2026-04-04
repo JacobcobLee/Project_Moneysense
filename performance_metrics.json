@@ -3,13 +3,13 @@
   "strategy": "SMA Crossover (20/50)",
   "period_start": "2021-06-14",
   "period_end": "2026-04-02",
-  "total_return_pct": 10.2615673897542,
+  "total_return_pct": 10.261600192312224,
   "buy_and_hold_return_pct": 65.12,
-  "max_drawdown_pct": 27.602087900331927,
+  "max_drawdown_pct": 27.60210664723029,
   "total_trades": 11,
   "win_rate_pct": 45.45454545454545,
   "sharpe_ratio": 0.29,
   "annualized_return_pct": 2.06,
   "annualized_volatility_pct": 11.0,
-  "run_timestamp_utc": "2026-04-04T16:00:50.983789Z"
+  "run_timestamp_utc": "2026-04-04T16:24:12.859668Z"
 }
