@@ -1,0 +1,144 @@
+# ============================================================
+# Phase 1.5 — Task 3: Daily Backtest Automation
+# ============================================================
+# Runs the SMA Crossover backtest pipeline every weekday morning
+# (Melbourne time) and commits fresh results back to the repo
+# so the Streamlit dashboard always has up-to-date data.
+#
+# SCHEDULE NOTES:
+#   Target:  6:15 AM AEDT (UTC+11) on weekdays
+#   UTC:     7:15 PM (19:15) the previous day
+#   Cron:    Sun-Thu at 19:15 UTC = Mon-Fri at 06:15 AEDT
+#
+#   ⚠ DAYLIGHT SAVING CAVEAT:
+#   When Melbourne switches to AEST (UTC+10) — roughly early
+#   April through early October — this cron fires at 5:15 AM
+#   local time instead of 6:15 AM. GitHub Actions does not
+#   support timezone-aware cron. If the 1-hour seasonal drift
+#   matters, update the cron to "15 20 * * 0-4" during AEST
+#   and back to "15 19 * * 0-4" for AEDT.
+#
+# FILE PLACEMENT:
+#   This file must live at:
+#     <your-repo-root>/.github/workflows/daily_run.yml
+#
+#   Your repo structure should look like:
+#     Project Moneysense/
+#     ├── .github/
+#     │   └── workflows/
+#     │       └── daily_run.yml    ← this file
+#     ├── phase1_engine.py
+#     ├── run_phase1.py
+#     ├── app.py
+#     ├── requirements.txt
+#     ├── daily_results.csv        ← auto-generated
+#     ├── performance_metrics.json  ← auto-generated
+#     └── equity_curve.png          ← auto-generated
+# ============================================================
+
+name: Daily Backtest Pipeline
+
+on:
+  # ── Scheduled trigger: weekday mornings Melbourne time ──
+  schedule:
+    - cron: "15 19 * * 0-4"   # Sun-Thu 19:15 UTC = Mon-Fri 06:15 AEDT
+
+  # ── Manual trigger for testing ──
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: "Ticker symbol to backtest"
+        required: false
+        default: "SPY"
+        type: string
+
+# ── Permissions: allow the workflow to push commits ──
+permissions:
+  contents: write
+
+jobs:
+  run-backtest:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ────────────────────────────────────────────────
+      # 1. CHECKOUT — pull the repo with full history
+      # ────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth 1 is fine — we only need current branch
+          fetch-depth: 1
+
+      # ────────────────────────────────────────────────
+      # 2. PYTHON SETUP
+      # ────────────────────────────────────────────────
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"            # caches pip packages between runs
+
+      # ────────────────────────────────────────────────
+      # 3. INSTALL DEPENDENCIES
+      # ────────────────────────────────────────────────
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ────────────────────────────────────────────────
+      # 4. RUN THE BACKTEST PIPELINE
+      # ────────────────────────────────────────────────
+      - name: Run backtest pipeline
+        run: |
+          python run_phase1.py \
+            --ticker "${{ github.event.inputs.ticker || 'SPY' }}" \
+            --years 5 \
+            --recent-days 60
+        env:
+          # Suppress interactive matplotlib backend in CI
+          MPLBACKEND: Agg
+
+      # ────────────────────────────────────────────────
+      # 5. VERIFY OUTPUTS EXIST
+      # ────────────────────────────────────────────────
+      - name: Verify output files
+        run: |
+          echo "── Checking output files ──"
+          if [ ! -f daily_results.csv ]; then
+            echo "ERROR: daily_results.csv not found!"
+            exit 1
+          fi
+          if [ ! -f performance_metrics.json ]; then
+            echo "ERROR: performance_metrics.json not found!"
+            exit 1
+          fi
+          echo "daily_results.csv:        $(wc -l < daily_results.csv) lines"
+          echo "performance_metrics.json: $(wc -c < performance_metrics.json) bytes"
+          echo "equity_curve.png:         $([ -f equity_curve.png ] && echo 'present' || echo 'missing (non-critical)')"
+          echo "── All critical files present ──"
+
+      # ────────────────────────────────────────────────
+      # 6. COMMIT & PUSH (only if files changed)
+      # ────────────────────────────────────────────────
+      - name: Commit and push updated results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Stage only the output files (not the entire repo)
+          git add daily_results.csv performance_metrics.json
+          git add equity_curve.png 2>/dev/null || true
+
+          # Commit only if there are actual changes
+          if git diff --cached --quiet; then
+            echo "No changes to commit — data is identical to last run."
+          else
+            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M UTC")
+            TICKER="${{ github.event.inputs.ticker || 'SPY' }}"
+            git commit -m "chore: update ${TICKER} backtest results [${TIMESTAMP}]" \
+                        -m "Automated daily run via GitHub Actions"
+            git push
+            echo "Changes committed and pushed successfully."
+          fi

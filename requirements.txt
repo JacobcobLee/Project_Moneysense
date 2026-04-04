@@ -1,0 +1,7 @@
+# Phase 1: Data & Backtesting Plumbing
+yfinance>=0.2.31
+pandas>=2.0.0
+numpy>=1.24.0
+pandas-ta>=0.3.14b1
+vectorbt>=0.26.0
+matplotlib>=3.7.0
