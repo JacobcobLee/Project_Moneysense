@@ -1,15 +1,15 @@
 {
   "ticker": "SPY",
   "strategy": "SMA Crossover (20/50)",
-  "period_start": "2021-09-23",
-  "period_end": "2026-07-14",
-  "total_return_pct": 16.238085339716633,
-  "buy_and_hold_return_pct": 80.93,
-  "max_drawdown_pct": 27.60206915404905,
+  "period_start": "2021-09-24",
+  "period_end": "2026-07-15",
+  "total_return_pct": 16.698716276974213,
+  "buy_and_hold_return_pct": 81.35,
+  "max_drawdown_pct": 27.602149384930456,
   "total_trades": 12,
   "win_rate_pct": 45.45454545454545,
-  "sharpe_ratio": 0.402,
-  "annualized_return_pct": 3.18,
+  "sharpe_ratio": 0.411,
+  "annualized_return_pct": 3.27,
   "annualized_volatility_pct": 11.36,
-  "run_timestamp_utc": "2026-07-15T20:20:24.012288Z"
+  "run_timestamp_utc": "2026-07-16T20:14:13.776318Z"
 }
